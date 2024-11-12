@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// Initialize SQLite database
+// Khởi tạo cơ sở dữ liệu SQLite
 const db = new sqlite3.Database('./database.db', (err) => {
     if (err) {
         console.error(err.message);
