@@ -22,22 +22,22 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-const Database = require('better-sqlite3');
-
 // Initialize SQLite database
-const db = new Database('./database.db', { verbose: console.log });
-
-// Tạo bảng nếu chưa tồn tại
-db.exec(`
-    CREATE TABLE IF NOT EXISTS shops (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        khu_vuc TEXT NOT NULL,
-        ten_shop TEXT NOT NULL,
-        dia_chi TEXT NOT NULL,
-        cccd TEXT,
-        gpkd TEXT
-    )
-`);
+const db = new sqlite3.Database('./database.db', (err) => {
+    if (err) {
+        console.error(err.message);
+    } else {
+        console.log('Connected to SQLite database.');
+        db.run(`CREATE TABLE IF NOT EXISTS shops (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            khu_vuc TEXT NOT NULL,
+            ten_shop TEXT NOT NULL,
+            dia_chi TEXT NOT NULL,
+            cccd TEXT,
+            gpkd TEXT
+        )`);
+    }
+});
 
 // Serve static files
 app.use(express.static('public'));
