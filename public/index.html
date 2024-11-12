@@ -6,6 +6,8 @@
     <title>Ứng dụng Lưu trữ Tài liệu và Hình Ảnh với Node.js và SQLite</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0.27/dist/fancybox.css">
+    <!-- Include Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* General Styling */
         body {
@@ -102,47 +104,50 @@
     <button class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#dataEntryModal">Thêm Shop</button>
 
     <!-- Modal Nhập Liệu -->
-    <div class="modal fade" id="dataEntryModal" tabindex="-1" aria-labelledby="dataEntryModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="dataEntryModalLabel">Nhập Thông Tin Shop</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="dataEntryForm" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="khu_vuc" class="form-label">Khu Vực</label>
-                            <select class="form-select" id="khu_vuc" name="khu_vuc" required>
-                                <option value="">Chọn khu vực</option>
-                                <option value="Hồ Chí Minh">Hồ Chí Minh</option>
-                                <option value="Vùng Đông Nam Bộ">Vùng Đông Nam Bộ</option>
-                                <option value="Nam Trung Bộ">Nam Trung Bộ</option>
-                                <option value="Tây Nam Bộ">Tây Nam Bộ</option>
-                            </select>
-                        </div>                        
-                        <div class="mb-3">
-                            <label for="ten_shop" class="form-label">Tên Shop</label>
-                            <input type="text" class="form-control" id="ten_shop" name="ten_shop" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="dia_chi" class="form-label">Địa Chỉ</label>
-                            <input type="text" class="form-control" id="dia_chi" name="dia_chi" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="cccd" class="form-label">CCCD (Hình Ảnh)</label>
-                            <input type="file" class="form-control" id="cccd" name="cccd" accept="image/*" multiple required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="gpkd" class="form-label">GPKD (Hình Ảnh)</label>
-                            <input type="file" class="form-control" id="gpkd" name="gpkd" accept="image/*" multiple required>
-                        </div>                        
-                        <button type="submit" class="btn btn-primary w-100">Lưu</button>
-                    </form>
-                </div>
+<div class="modal fade" id="dataEntryModal" tabindex="-1" aria-labelledby="dataEntryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dataEntryModalLabel">Nhập Thông Tin Shop</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="dataEntryForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="khu_vuc" class="form-label">Khu Vực</label>
+                        <select class="form-select" id="khu_vuc" name="khu_vuc" required>
+                            <option value="">Chọn khu vực</option>
+                            <option value="Hồ Chí Minh">Hồ Chí Minh</option>
+                            <option value="Vùng Đông Nam Bộ">Vùng Đông Nam Bộ</option>
+                            <option value="Nam Trung Bộ">Nam Trung Bộ</option>
+                            <option value="Tây Nam Bộ">Tây Nam Bộ</option>
+                        </select>
+                    </div>                        
+                    <div class="mb-3">
+                        <label for="ten_shop" class="form-label">Tên Shop</label>
+                        <input type="text" class="form-control" id="ten_shop" name="ten_shop" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dia_chi" class="form-label">Địa Chỉ</label>
+                        <input type="text" class="form-control" id="dia_chi" name="dia_chi" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cccd" class="form-label">CCCD (Hình Ảnh)</label>
+                        <div id="existingCccdImages" class="mb-2"></div> <!-- Hiển thị hình ảnh CCCD cũ -->
+                        <input type="file" class="form-control" id="cccd" name="cccd" accept="image/*" multiple>
+                    </div>
+                    <div class="mb-3">
+                        <label for="gpkd" class="form-label">GPKD (Hình Ảnh)</label>
+                        <div id="existingGpkdImages" class="mb-2"></div> <!-- Hiển thị hình ảnh GPKD cũ -->
+                        <input type="file" class="form-control" id="gpkd" name="gpkd" accept="image/*" multiple>
+                    </div>                        
+                    <button type="submit" class="btn btn-primary w-100">Lưu</button>
+                </form>
             </div>
         </div>
     </div>
+</div>
+
 
     <!-- Modal Chi Tiết Shop -->
     <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
@@ -154,6 +159,15 @@
                 </div>
                 <div class="modal-body" id="detailModalBody">
                     <!-- Nội dung chi tiết sẽ được cập nhật bằng JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <!-- Edit and Delete Icons -->
+                    <button onclick="editShop()" class="btn btn-secondary">
+                        <i class="fas fa-edit"></i> Sửa
+                    </button>
+                    <button onclick="deleteShop()" class="btn btn-danger">
+                        <i class="fas fa-trash-alt"></i> Xoá
+                    </button>
                 </div>
             </div>
         </div>
@@ -169,23 +183,42 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0.27/dist/fancybox.umd.js"></script>
 <script>
-    document.getElementById('dataEntryForm').onsubmit = async function (event) {
+   document.getElementById('dataEntryForm').onsubmit = async function (event) {
         event.preventDefault();
+
         const formData = new FormData(document.getElementById('dataEntryForm'));
-        const response = await fetch('/save-data', {
-            method: 'POST',
+        const shopId = document.getElementById('dataEntryForm').getAttribute('data-shop-id');
+        const url = shopId ? `/edit-shop/${shopId}` : '/save-data';
+        const method = shopId ? 'PUT' : 'POST';
+
+        // Thêm các đường dẫn hình ảnh cũ vào formData nếu người dùng giữ lại
+        document.querySelectorAll('input[name="keep_cccd"]:checked').forEach(checkbox => {
+            formData.append('existing_cccd', checkbox.value);
+        });
+
+        document.querySelectorAll('input[name="keep_gpkd"]:checked').forEach(checkbox => {
+            formData.append('existing_gpkd', checkbox.value);
+        });
+
+        const response = await fetch(url, {
+            method: method,
             body: formData
         });
+
         if (response.ok) {
-            renderDataList(); // Tải lại danh sách sau khi lưu thành công
+            renderDataList();
             const modal = bootstrap.Modal.getInstance(document.getElementById('dataEntryModal'));
             modal.hide();
+            document.getElementById('dataEntryForm').removeAttribute('data-shop-id'); // Clear ID for future use
+            document.getElementById('dataEntryForm').reset(); // Clear form fields
+            document.getElementById('existingCccdImages').innerHTML = ''; // Clear existing images
+            document.getElementById('existingGpkdImages').innerHTML = ''; // Clear existing images
         } else {
             alert('Lỗi khi lưu dữ liệu.');
         }
     };
 
-   async function renderDataList() {
+    async function renderDataList() {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const response = await fetch('/get-data');
         
@@ -202,7 +235,6 @@
             dataListCard.innerHTML = '';
 
             if (filteredShops.length > 0) {
-                // Table View for larger screens
                 let tableHtml = '<div class="table-view"><table class="table table-bordered"><thead><tr><th>ID</th><th>Khu Vực</th><th>Tên Shop</th><th>Địa Chỉ</th></tr></thead><tbody>';
                 filteredShops.forEach(shop => {
                     tableHtml += `<tr onclick="showDetailView(${shop.id})">
@@ -215,7 +247,6 @@
                 tableHtml += '</tbody></table></div>';
                 dataListTable.innerHTML = tableHtml;
 
-                // Card View for mobile screens
                 let cardHtml = '<div class="card-view">';
                 filteredShops.forEach(shop => {
                     cardHtml += `
@@ -253,20 +284,21 @@
                     <div><strong>CCCD:</strong><br>
                         ${shop.cccd ? shop.cccd.split(',').map(path => `
                             <div class="d-inline-block me-2 mb-2">
-                                <a data-fancybox="gallery" href="${path}">
-                                    <img src="${path}" alt="CCCD" width="100">
+                                <a data-fancybox="gallery" href="/${path}">
+                                    <img src="/${path}" alt="CCCD" width="100">
                                 </a>
                             </div>`).join('') : 'Không có hình ảnh'}
                     </div>
                     <div class="mt-2"><strong>GPKD:</strong><br>
                         ${shop.gpkd ? shop.gpkd.split(',').map(path => `
                             <div class="d-inline-block me-2 mb-2">
-                                <a data-fancybox="gallery" href="${path}">
-                                    <img src="${path}" alt="GPKD" width="100">
+                                <a data-fancybox="gallery" href="/${path}">
+                                    <img src="/${path}" alt="GPKD" width="100">
                                 </a>
                             </div>`).join('') : 'Không có hình ảnh'}
                     </div>
                 `;
+                detailModalBody.setAttribute('data-shop-id', shop.id);
                 const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
                 detailModal.show();
             })
@@ -274,6 +306,77 @@
                 alert('Lỗi khi tải chi tiết dữ liệu.');
             });
     }
+
+    function editShop() {
+        // Đóng modal chi tiết trước khi mở modal nhập liệu
+        const detailModal = bootstrap.Modal.getInstance(document.getElementById('detailModal'));
+        if (detailModal) {
+            detailModal.hide();
+        }
+
+        const shopId = document.getElementById('detailModalBody').getAttribute('data-shop-id');
+        fetch(`/get-data/${shopId}`)
+            .then(response => response.json())
+            .then(shop => {
+                document.getElementById('khu_vuc').value = shop.khu_vuc;
+                document.getElementById('ten_shop').value = shop.ten_shop;
+                document.getElementById('dia_chi').value = shop.dia_chi;
+                document.getElementById('dataEntryForm').setAttribute('data-shop-id', shop.id);
+
+                // Hiển thị thông tin hình ảnh cũ
+                if (shop.cccd) {
+                    const cccdHtml = shop.cccd.split(',').map(path => `
+                        <div class="existing-image">
+                            <a href="/${path}" target="_blank">
+                                <img src="/${path}" alt="CCCD" width="100">
+                            </a>
+                            <input type="checkbox" name="keep_cccd" value="${path}" checked> Giữ hình ảnh này
+                        </div>`).join('');
+                    document.getElementById('existingCccdImages').innerHTML = cccdHtml;
+                }
+
+                if (shop.gpkd) {
+                    const gpkdHtml = shop.gpkd.split(',').map(path => `
+                        <div class="existing-image">
+                            <a href="/${path}" target="_blank">
+                                <img src="/${path}" alt="GPKD" width="100">
+                            </a>
+                            <input type="checkbox" name="keep_gpkd" value="${path}" checked> Giữ hình ảnh này
+                        </div>`).join('');
+                    document.getElementById('existingGpkdImages').innerHTML = gpkdHtml;
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('dataEntryModal'));
+                modal.show();
+            })
+            .catch(error => {
+                alert('Lỗi khi tải dữ liệu để sửa.');
+                console.error("Error loading data for editing:", error); // Debugging line
+            });
+    }
+
+
+    function deleteShop() {
+        const shopId = document.getElementById('detailModalBody').getAttribute('data-shop-id');
+        console.log("Deleting shop with ID:", shopId); // Debugging line
+        if (confirm("Bạn có chắc chắn muốn xoá shop này không?")) {
+            fetch(`/delete-shop/${shopId}`, { method: 'DELETE' })
+                .then(response => {
+                    if (response.ok) {
+                        renderDataList();
+                        const detailModal = bootstrap.Modal.getInstance(document.getElementById('detailModal'));
+                        detailModal.hide();
+                    } else {
+                        alert("Lỗi khi xoá dữ liệu.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error deleting data:", error);
+                    alert("Lỗi khi xoá dữ liệu.");
+                });
+        }
+    }
+
 
     // Fancybox event to close modal before showing images
     Fancybox.bind("[data-fancybox]", {
