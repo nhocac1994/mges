@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng dụng Lưu trữ Tài liệu và Hình Ảnh với Node.js và SQLite</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0.27/dist/fancybox.css">
+    <style>
+        /* General Styling */
+        body {
+            background-color: #f0f2f5;
+        }
+        
+        h1, h2 {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        /* Button Styling */
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+        /* Search Input */
+        #searchInput {
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+
+        /* Modal Styling */
+        .modal-content {
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Card View Styling */
+        .card-view {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .table-view {
+                display: none;
+            }
+            .card-view {
+                display: block;
+            }
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-title {
+            color: #0056b3;
+            font-weight: 600;
+        }
+
+        .card-text {
+            color: #555;
+        }
+
+        /* Detail View Styling */
+        .detail-view {
+            display: none;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <h1 class="text-center">Nhập Thông Tin Shop</h1>
+
+    <!-- Search Input -->
+    <div class="mb-4">
+        <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm theo tên hoặc khu vực">
+    </div>
+    
+    <!-- Nút để mở modal -->
+    <button class="btn btn-primary mb-4" data-bs-toggle="modal" data-bs-target="#dataEntryModal">Thêm Shop</button>
+
+    <!-- Modal Nhập Liệu -->
+    <div class="modal fade" id="dataEntryModal" tabindex="-1" aria-labelledby="dataEntryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataEntryModalLabel">Nhập Thông Tin Shop</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="dataEntryForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="khu_vuc" class="form-label">Khu Vực</label>
+                            <select class="form-select" id="khu_vuc" name="khu_vuc" required>
+                                <option value="">Chọn khu vực</option>
+                                <option value="Hồ Chí Minh">Hồ Chí Minh</option>
+                                <option value="Vùng Đông Nam Bộ">Vùng Đông Nam Bộ</option>
+                                <option value="Nam Trung Bộ">Nam Trung Bộ</option>
+                                <option value="Tây Nam Bộ">Tây Nam Bộ</option>
+                            </select>
+                        </div>                        
+                        <div class="mb-3">
+                            <label for="ten_shop" class="form-label">Tên Shop</label>
+                            <input type="text" class="form-control" id="ten_shop" name="ten_shop" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="dia_chi" class="form-label">Địa Chỉ</label>
+                            <input type="text" class="form-control" id="dia_chi" name="dia_chi" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cccd" class="form-label">CCCD (Hình Ảnh)</label>
+                            <input type="file" class="form-control" id="cccd" name="cccd" accept="image/*" multiple required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="gpkd" class="form-label">GPKD (Hình Ảnh)</label>
+                            <input type="file" class="form-control" id="gpkd" name="gpkd" accept="image/*" multiple required>
+                        </div>                        
+                        <button type="submit" class="btn btn-primary w-100">Lưu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Chi Tiết Shop -->
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailModalLabel">Chi Tiết Shop</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="detailModalBody">
+                    <!-- Nội dung chi tiết sẽ được cập nhật bằng JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách shop đã lưu -->
+    <h2 class="mt-5">Danh Sách Shop</h2>
+    <div id="dataListTable"></div>
+    <div id="dataListCard"></div>
+</div>
+
+<!-- JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0.27/dist/fancybox.umd.js"></script>
+<script>
+    document.getElementById('dataEntryForm').onsubmit = async function (event) {
+        event.preventDefault();
+        const formData = new FormData(document.getElementById('dataEntryForm'));
+        const response = await fetch('/save-data', {
+            method: 'POST',
+            body: formData
+        });
+        if (response.ok) {
+            renderDataList(); // Tải lại danh sách sau khi lưu thành công
+            const modal = bootstrap.Modal.getInstance(document.getElementById('dataEntryModal'));
+            modal.hide();
+        } else {
+            alert('Lỗi khi lưu dữ liệu.');
+        }
+    };
+
+   async function renderDataList() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const response = await fetch('/get-data');
+        
+        if (response.ok) {
+            const shops = await response.json();
+            const filteredShops = shops.filter(shop => 
+                shop.khu_vuc.toLowerCase().includes(searchTerm) || 
+                shop.ten_shop.toLowerCase().includes(searchTerm)
+            );
+
+            const dataListTable = document.getElementById('dataListTable');
+            const dataListCard = document.getElementById('dataListCard');
+            dataListTable.innerHTML = '';
+            dataListCard.innerHTML = '';
+
+            if (filteredShops.length > 0) {
+                // Table View for larger screens
+                let tableHtml = '<div class="table-view"><table class="table table-bordered"><thead><tr><th>ID</th><th>Khu Vực</th><th>Tên Shop</th><th>Địa Chỉ</th></tr></thead><tbody>';
+                filteredShops.forEach(shop => {
+                    tableHtml += `<tr onclick="showDetailView(${shop.id})">
+                        <td>${shop.id}</td>
+                        <td>${shop.khu_vuc}</td>
+                        <td>${shop.ten_shop}</td>
+                        <td>${shop.dia_chi}</td>
+                    </tr>`;
+                });
+                tableHtml += '</tbody></table></div>';
+                dataListTable.innerHTML = tableHtml;
+
+                // Card View for mobile screens
+                let cardHtml = '<div class="card-view">';
+                filteredShops.forEach(shop => {
+                    cardHtml += `
+                    <div class="card mb-3" onclick="showDetailView(${shop.id})">
+                        <div class="card-body">
+                            <h5 class="card-title">${shop.ten_shop}</h5>
+                            <p class="card-text"><strong>Khu Vực:</strong> ${shop.khu_vuc}</p>
+                            <p class="card-text"><strong>Địa Chỉ:</strong> ${shop.dia_chi}</p>
+                        </div>
+                    </div>`;
+                });
+                cardHtml += '</div>';
+                dataListCard.innerHTML = cardHtml;
+            } else {
+                dataListTable.innerHTML = '<p>Không có dữ liệu.</p>';
+                dataListCard.innerHTML = '<p>Không có dữ liệu.</p>';
+            }
+        } else {
+            alert('Lỗi khi tải danh sách dữ liệu.');
+        }
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderDataList);
+
+    function showDetailView(id) {
+        fetch(`/get-data/${id}`)
+            .then(response => response.json())
+            .then(shop => {
+                const detailModalBody = document.getElementById('detailModalBody');
+                detailModalBody.innerHTML = `
+                    <p><strong>ID:</strong> ${shop.id}</p>
+                    <p><strong>Khu Vực:</strong> ${shop.khu_vuc}</p>
+                    <p><strong>Tên Shop:</strong> ${shop.ten_shop}</p>
+                    <p><strong>Địa Chỉ:</strong> ${shop.dia_chi}</p>
+                    <div><strong>CCCD:</strong><br>
+                        ${shop.cccd ? shop.cccd.split(',').map(path => `
+                            <div class="d-inline-block me-2 mb-2">
+                                <a data-fancybox="gallery" href="${path}">
+                                    <img src="${path}" alt="CCCD" width="100">
+                                </a>
+                            </div>`).join('') : 'Không có hình ảnh'}
+                    </div>
+                    <div class="mt-2"><strong>GPKD:</strong><br>
+                        ${shop.gpkd ? shop.gpkd.split(',').map(path => `
+                            <div class="d-inline-block me-2 mb-2">
+                                <a data-fancybox="gallery" href="${path}">
+                                    <img src="${path}" alt="GPKD" width="100">
+                                </a>
+                            </div>`).join('') : 'Không có hình ảnh'}
+                    </div>
+                `;
+                const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+                detailModal.show();
+            })
+            .catch(error => {
+                alert('Lỗi khi tải chi tiết dữ liệu.');
+            });
+    }
+
+    // Fancybox event to close modal before showing images
+    Fancybox.bind("[data-fancybox]", {
+        on: {
+            reveal: (fancybox) => {
+                // Hide modal when Fancybox opens
+                const detailModal = bootstrap.Modal.getInstance(document.getElementById('detailModal'));
+                if (detailModal) {
+                    detailModal.hide();
+                }
+            },
+            destroy: (fancybox) => {
+                // Show modal again when Fancybox closes
+                const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+                if (detailModal) {
+                    detailModal.show();
+                }
+            }
+        }
+    });
+
+    // Tải danh sách shop khi trang được tải
+    window.onload = renderDataList;
+</script>
+
+</body>
+</html>
