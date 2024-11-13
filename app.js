@@ -23,16 +23,13 @@ const upload = multer({ storage: storage });
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/shopsDB', {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-    useCreateIndex: true,
-    useFindAndModify: false
+    useUnifiedTopology: true
 }).then(() => {
     console.log('Connected to MongoDB');
 }).catch(err => {
     console.error('Failed to connect to MongoDB:', err.message);
 });
+
 
 
 // Define a Mongoose schema and model
