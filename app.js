@@ -21,14 +21,14 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/shopsDB', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/shopsDB')
+  .then(() => {
     console.log('Connected to MongoDB');
-}).catch(err => {
+  })
+  .catch(err => {
     console.error('Failed to connect to MongoDB:', err.message);
-});
+  });
+
 
 
 
