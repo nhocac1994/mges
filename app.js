@@ -1,7 +1,8 @@
 const express = require('express');
 const multer = require('multer');
-const mongoose = require('mongoose');
+const { google } = require('googleapis');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,52 +22,39 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/shopsDB', {
-  connectTimeoutMS: 30000,
-  socketTimeoutMS: 30000,
-})
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch(err => {
-    console.error('Failed to connect to MongoDB:', err.message);
-  });
-
-
-
-
-
-// Define a Mongoose schema and model
-const shopSchema = new mongoose.Schema({
-    khu_vuc: { type: String, required: true },
-    ten_shop: { type: String, required: true },
-    dia_chi: { type: String, required: true },
-    cccd: String,
-    gpkd: String
+// Google Sheets API setup
+const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+const auth = new google.auth.GoogleAuth({
+    keyFile: 'credentials.json', // Path to your credentials file
+    scopes: SCOPES
 });
 
-const Shop = mongoose.model('Shop', shopSchema);
+const sheets = google.sheets({ version: 'v4', auth });
+const SPREADSHEET_ID = '1dtFx_n985esZD5r3Z2xek9dY3PH2Zq6Py8deV3b_XKc'; // Replace with your Google Sheets ID
 
 // Serve static files
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
-// Endpoint to save data from form to MongoDB
+// Endpoint to save data from form to Google Sheets
 app.post('/save-data', upload.fields([{ name: 'cccd', maxCount: 10 }, { name: 'gpkd', maxCount: 10 }]), async (req, res) => {
     try {
         const { khu_vuc, ten_shop, dia_chi } = req.body;
-        const cccdPaths = req.files['cccd'] ? req.files['cccd'].map(file => file.path).join(',') : null;
-        const gpkdPaths = req.files['gpkd'] ? req.files['gpkd'].map(file => file.path).join(',') : null;
+        const cccdPaths = req.files['cccd'] ? req.files['cccd'].map(file => file.path).join(',') : '';
+        const gpkdPaths = req.files['gpkd'] ? req.files['gpkd'].map(file => file.path).join(',') : '';
 
-        const newShop = new Shop({
-            khu_vuc,
-            ten_shop,
-            dia_chi,
-            cccd: cccdPaths,
-            gpkd: gpkdPaths
+        // Append data to Google Sheets
+        const values = [[null, khu_vuc, ten_shop, dia_chi, cccdPaths, gpkdPaths]];
+        const resource = {
+            values,
+        };
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Sheet1!A:F', // Update the range to match your sheet
+            valueInputOption: 'RAW',
+            resource,
         });
 
-        await newShop.save();
         res.status(200).send('Lưu dữ liệu thành công.');
     } catch (err) {
         console.error('Lỗi khi lưu dữ liệu:', err.message);
@@ -74,29 +62,22 @@ app.post('/save-data', upload.fields([{ name: 'cccd', maxCount: 10 }, { name: 'g
     }
 });
 
-// Endpoint to retrieve the list of data from MongoDB
+// Endpoint to retrieve the list of data from Google Sheets
 app.get('/get-data', async (req, res) => {
     try {
-        const shops = await Shop.find();
-        res.json(shops);
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Sheet1!A:F', // Update the range to match your sheet
+        });
+        const rows = response.data.values;
+        if (rows.length) {
+            res.json(rows);
+        } else {
+            res.status(404).send('Không có dữ liệu.');
+        }
     } catch (err) {
         console.error('Lỗi khi lấy dữ liệu:', err.message);
         res.status(500).send('Lỗi khi lấy dữ liệu.');
-    }
-});
-
-// Endpoint to retrieve detailed data from MongoDB by ID
-app.get('/get-data/:id', async (req, res) => {
-    try {
-        const shop = await Shop.findById(req.params.id);
-        if (shop) {
-            res.json(shop);
-        } else {
-            res.status(404).send('Không tìm thấy dữ liệu.');
-        }
-    } catch (err) {
-        console.error('Lỗi khi lấy dữ liệu chi tiết:', err.message);
-        res.status(500).send('Lỗi khi lấy dữ liệu chi tiết.');
     }
 });
 

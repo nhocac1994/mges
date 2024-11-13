@@ -183,22 +183,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0.27/dist/fancybox.umd.js"></script>
 <script>
-   document.getElementById('dataEntryForm').onsubmit = async function (event) {
+    document.getElementById('dataEntryForm').onsubmit = async function (event) {
         event.preventDefault();
 
         const formData = new FormData(document.getElementById('dataEntryForm'));
         const shopId = document.getElementById('dataEntryForm').getAttribute('data-shop-id');
         const url = shopId ? `/edit-shop/${shopId}` : '/save-data';
         const method = shopId ? 'PUT' : 'POST';
-
-        // Thêm các đường dẫn hình ảnh cũ vào formData nếu người dùng giữ lại
-        document.querySelectorAll('input[name="keep_cccd"]:checked').forEach(checkbox => {
-            formData.append('existing_cccd', checkbox.value);
-        });
-
-        document.querySelectorAll('input[name="keep_gpkd"]:checked').forEach(checkbox => {
-            formData.append('existing_gpkd', checkbox.value);
-        });
 
         const response = await fetch(url, {
             method: method,
@@ -223,7 +214,17 @@
         const response = await fetch('/get-data');
         
         if (response.ok) {
-            const shops = await response.json();
+            const rows = await response.json();
+            // Skip header row for processing if using Google Sheets
+            const shops = rows.slice(1).map(row => ({
+                id: row[0],
+                khu_vuc: row[1],
+                ten_shop: row[2],
+                dia_chi: row[3],
+                cccd: row[4] || '',
+                gpkd: row[5] || ''
+            }));
+
             const filteredShops = shops.filter(shop => 
                 shop.khu_vuc.toLowerCase().includes(searchTerm) || 
                 shop.ten_shop.toLowerCase().includes(searchTerm)
@@ -237,7 +238,7 @@
             if (filteredShops.length > 0) {
                 let tableHtml = '<div class="table-view"><table class="table table-bordered"><thead><tr><th>ID</th><th>Khu Vực</th><th>Tên Shop</th><th>Địa Chỉ</th></tr></thead><tbody>';
                 filteredShops.forEach(shop => {
-                    tableHtml += `<tr onclick="showDetailView(${shop.id})">
+                    tableHtml += `<tr onclick="showDetailView('${shop.id}')">
                         <td>${shop.id}</td>
                         <td>${shop.khu_vuc}</td>
                         <td>${shop.ten_shop}</td>
@@ -250,7 +251,7 @@
                 let cardHtml = '<div class="card-view">';
                 filteredShops.forEach(shop => {
                     cardHtml += `
-                    <div class="card mb-3" onclick="showDetailView(${shop.id})">
+                    <div class="card mb-3" onclick="showDetailView('${shop.id}')">
                         <div class="card-body">
                             <h5 class="card-title">${shop.ten_shop}</h5>
                             <p class="card-text"><strong>Khu Vực:</strong> ${shop.khu_vuc}</p>
@@ -277,12 +278,12 @@
             .then(shop => {
                 const detailModalBody = document.getElementById('detailModalBody');
                 detailModalBody.innerHTML = `
-                    <p><strong>ID:</strong> ${shop.id}</p>
-                    <p><strong>Khu Vực:</strong> ${shop.khu_vuc}</p>
-                    <p><strong>Tên Shop:</strong> ${shop.ten_shop}</p>
-                    <p><strong>Địa Chỉ:</strong> ${shop.dia_chi}</p>
+                    <p><strong>ID:</strong> ${shop[0]}</p>
+                    <p><strong>Khu Vực:</strong> ${shop[1]}</p>
+                    <p><strong>Tên Shop:</strong> ${shop[2]}</p>
+                    <p><strong>Địa Chỉ:</strong> ${shop[3]}</p>
                     <div><strong>CCCD:</strong><br>
-                        ${shop.cccd ? shop.cccd.split(',').map(path => `
+                        ${shop[4] ? shop[4].split(',').map(path => `
                             <div class="d-inline-block me-2 mb-2">
                                 <a data-fancybox="gallery" href="/${path}">
                                     <img src="/${path}" alt="CCCD" width="100">
@@ -290,7 +291,7 @@
                             </div>`).join('') : 'Không có hình ảnh'}
                     </div>
                     <div class="mt-2"><strong>GPKD:</strong><br>
-                        ${shop.gpkd ? shop.gpkd.split(',').map(path => `
+                        ${shop[5] ? shop[5].split(',').map(path => `
                             <div class="d-inline-block me-2 mb-2">
                                 <a data-fancybox="gallery" href="/${path}">
                                     <img src="/${path}" alt="GPKD" width="100">
@@ -298,7 +299,6 @@
                             </div>`).join('') : 'Không có hình ảnh'}
                     </div>
                 `;
-                detailModalBody.setAttribute('data-shop-id', shop.id);
                 const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
                 detailModal.show();
             })
@@ -307,100 +307,10 @@
             });
     }
 
-    function editShop() {
-        // Đóng modal chi tiết trước khi mở modal nhập liệu
-        const detailModal = bootstrap.Modal.getInstance(document.getElementById('detailModal'));
-        if (detailModal) {
-            detailModal.hide();
-        }
-
-        const shopId = document.getElementById('detailModalBody').getAttribute('data-shop-id');
-        fetch(`/get-data/${shopId}`)
-            .then(response => response.json())
-            .then(shop => {
-                document.getElementById('khu_vuc').value = shop.khu_vuc;
-                document.getElementById('ten_shop').value = shop.ten_shop;
-                document.getElementById('dia_chi').value = shop.dia_chi;
-                document.getElementById('dataEntryForm').setAttribute('data-shop-id', shop.id);
-
-                // Hiển thị thông tin hình ảnh cũ
-                if (shop.cccd) {
-                    const cccdHtml = shop.cccd.split(',').map(path => `
-                        <div class="existing-image">
-                            <a href="/${path}" target="_blank">
-                                <img src="/${path}" alt="CCCD" width="100">
-                            </a>
-                            <input type="checkbox" name="keep_cccd" value="${path}" checked> Giữ hình ảnh này
-                        </div>`).join('');
-                    document.getElementById('existingCccdImages').innerHTML = cccdHtml;
-                }
-
-                if (shop.gpkd) {
-                    const gpkdHtml = shop.gpkd.split(',').map(path => `
-                        <div class="existing-image">
-                            <a href="/${path}" target="_blank">
-                                <img src="/${path}" alt="GPKD" width="100">
-                            </a>
-                            <input type="checkbox" name="keep_gpkd" value="${path}" checked> Giữ hình ảnh này
-                        </div>`).join('');
-                    document.getElementById('existingGpkdImages').innerHTML = gpkdHtml;
-                }
-
-                const modal = new bootstrap.Modal(document.getElementById('dataEntryModal'));
-                modal.show();
-            })
-            .catch(error => {
-                alert('Lỗi khi tải dữ liệu để sửa.');
-                console.error("Error loading data for editing:", error); // Debugging line
-            });
-    }
-
-
-    function deleteShop() {
-        const shopId = document.getElementById('detailModalBody').getAttribute('data-shop-id');
-        console.log("Deleting shop with ID:", shopId); // Debugging line
-        if (confirm("Bạn có chắc chắn muốn xoá shop này không?")) {
-            fetch(`/delete-shop/${shopId}`, { method: 'DELETE' })
-                .then(response => {
-                    if (response.ok) {
-                        renderDataList();
-                        const detailModal = bootstrap.Modal.getInstance(document.getElementById('detailModal'));
-                        detailModal.hide();
-                    } else {
-                        alert("Lỗi khi xoá dữ liệu.");
-                    }
-                })
-                .catch(error => {
-                    console.error("Error deleting data:", error);
-                    alert("Lỗi khi xoá dữ liệu.");
-                });
-        }
-    }
-
-
-    // Fancybox event to close modal before showing images
-    Fancybox.bind("[data-fancybox]", {
-        on: {
-            reveal: (fancybox) => {
-                // Hide modal when Fancybox opens
-                const detailModal = bootstrap.Modal.getInstance(document.getElementById('detailModal'));
-                if (detailModal) {
-                    detailModal.hide();
-                }
-            },
-            destroy: (fancybox) => {
-                // Show modal again when Fancybox closes
-                const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
-                if (detailModal) {
-                    detailModal.show();
-                }
-            }
-        }
-    });
-
     // Tải danh sách shop khi trang được tải
     window.onload = renderDataList;
 </script>
+
 
 </body>
 </html>
